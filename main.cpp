@@ -132,6 +132,11 @@ public:
         return sqrt(pow(m_x - x, 2) + pow(m_y - y, 2));
     }
     
+    float next_turn_distance_from(int x, int y)
+    {
+        return sqrt(pow(m_x + m_vx- x, 2) + pow(m_y + m_vy - y, 2));
+    }
+    
     float distance_from(Ovni ovni)
     {
         return sqrt(pow(m_x - ovni.get_x(), 2) + pow(m_y - ovni.get_y(), 2));
@@ -144,24 +149,26 @@ public:
     
     void regulate_speed()
     {
-        int speed;
+        int speed = 100;
         float d = this->distance_from(m_x_target, m_y_target);
-        if(d < 5000)
-        {
-            speed = d/50;
-        }
+        float next_d = this->next_turn_distance_from(m_x_target, m_y_target);
         
-        if(speed < 100 && speed > 50)
-        {
-            m_power = to_string(speed);
-        }
+        if(next_d > d && next_d < 700)
+            speed = 0;
         else
         {
+            if(d < 700)
+                {
+                    speed = d/7;
+                }
+                
             if(speed > 100)
-                m_power = "100";
+                speed = 100;
             if(speed < 50)
-                m_power = "50";
+                speed = 50;
         }
+        
+        m_power = to_string(speed);
         
     }
     
@@ -212,7 +219,7 @@ public:
         // Atack
         else
         {
-            if(this->distance_from(enemy_flag) > 5000)
+            if(this->distance_from(enemy_flag) > 6000)
                 this->set_target(enemy_flag.get_x(), enemy_flag.get_y(), "BOOST");
             else
                 this->set_target(enemy_flag.get_x(), enemy_flag.get_y(), "100");
@@ -221,51 +228,49 @@ public:
     
     void defend_flag(Flag ally_flag, Flag enemy_flag, Ovni enemy_1, Ovni enemy_2)
     {
+        // Go on the enemy which has the flag
         if(!ally_flag.is_in_base())
         {
             if(enemy_1.has_flag())
             {
-                this->set_target(enemy_1.get_x() + enemy_1.get_vx()*3, enemy_1.get_y() + enemy_1.get_vy()*3, "BOOST");
+                this->set_target(enemy_1.get_x() + enemy_1.get_vx()*2, enemy_1.get_y() + enemy_1.get_vy()*2, "BOOST");
             }
             else
             {
-                this->set_target(enemy_2.get_x() + enemy_2.get_vx()*3, enemy_2.get_y() + enemy_2.get_vy()*3, "BOOST");
+                this->set_target(enemy_2.get_x() + enemy_2.get_vx()*2, enemy_2.get_y() + enemy_2.get_vy()*2, "BOOST");
             }
         }
         else
+        // Go between our flag and the enemy
         {
             int x_target;
             int y_target;
             
-            if(enemy_1.distance_from(ally_flag) < enemy_2.distance_from(ally_flag))
-            {
-                x_target = (ally_flag.get_x() + enemy_1.get_x())/2;
-                y_target = (ally_flag.get_y() + enemy_1.get_y())/2;
-            }
-            else
-            {
-                x_target = (ally_flag.get_x() + enemy_2.get_x())/2;
-                y_target = (ally_flag.get_y() + enemy_2.get_y())/2;
-            }
-            
-            if(m_team == "orange")
-            {
-                if(x_target > ally_flag.get_x() + 500)
-                {
-                   x_target = ally_flag.get_x() + 500;
-                }   
-            }
-            else
-            {
-                if(x_target < ally_flag.get_x() - 500)
-                {
-                    x_target = ally_flag.get_x() - 500;
-                }   
-            }
+            float dist_enemy_1, dist_enemy_2;
+
+            x_target = ally_flag.get_x();
+            y_target = ally_flag.get_y();
             
             this->set_target(x_target, y_target, "100");
-            
             this->regulate_speed();
+            
+            dist_enemy_1 = enemy_1.distance_from(ally_flag);
+            dist_enemy_2 = enemy_2.distance_from(ally_flag);
+            
+            if(dist_enemy_1 < 800 || dist_enemy_2 < 800)
+            {
+                if(dist_enemy_1 < dist_enemy_2)
+                {
+                    x_target = enemy_1.get_x();
+                    y_target = enemy_1.get_y();
+                }
+                else
+                {
+                    x_target = enemy_2.get_x();
+                    y_target = enemy_2.get_y();
+                }
+                this->set_target(x_target, y_target, "100");
+            }
         }
     }
     
@@ -279,8 +284,7 @@ private:
  int m_y;
  int m_vx;
  int m_vy;
- bool m_flag;
- 
+ bool m_flag; 
  string m_team;
  
  int m_x_target;
